@@ -1,4 +1,4 @@
-from PySide6.QtCore import Slot
+from PySide6.QtCore import QThreadPool, Slot
 from PySide6 import QtGui, QtWidgets
 from Ui_MainWindow import Ui_MainWindow
 from ChoosePatchDialog import ChoosePatchDialog
@@ -14,10 +14,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         self.ui.btnChoosePatch.clicked.connect(self.choose_patch)
+        self.ui.btnExecute.clicked.connect(self.execute_patch)
 
     @Slot(str)
     def on_message(self, msg: str) -> None:
-        self.ui.txtStatus.appendPlainText(msg + '\n')
+        self.ui.txtStatus.appendPlainText(msg)
 
     @Slot()
     def choose_patch(self) -> None:
@@ -25,5 +26,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             patch_file = dlg.patch_file()
             self.ui.btnChoosePatch.setText(patch_file)
-            pe = PatchExecutor(self, 'patches/' + patch_file)
-            self.ui.txtProgramPath.setText(pe.default_path)
+            self.pe = PatchExecutor(self, 'patches/' + patch_file)
+            self.ui.txtProgramPath.setText(self.pe.default_path)
+            self.pe.prog_path = self.pe.default_path
+            self.pe.finished.connect(
+                lambda: self.ui.btnExecute.setEnabled(True)
+            )
+
+    @Slot()
+    def execute_patch(self) -> None:
+        self.ui.btnExecute.setEnabled(False)
+        QThreadPool.globalInstance().start(self.pe)
