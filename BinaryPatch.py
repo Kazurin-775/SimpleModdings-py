@@ -38,7 +38,7 @@ class BinaryReplacePattern:
                 self.value = int('0x' + repr, 16)
 
         def write_at(self, dest: bytearray, index: int) -> None:
-            if self.value:
+            if self.value is not None:
                 dest[index] = self.value
 
     def __init__(self, repr: str) -> None:
