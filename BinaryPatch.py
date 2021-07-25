@@ -15,8 +15,8 @@ class BinarySearchPattern:
                 regex += b'.'
             else:
                 byte = bytes([int('0x' + byte, 16)])
-                if byte in BinarySearchPattern.REGEX_ESCAPE:
-                    regex += b'\\'+byte
+                if byte[0] in BinarySearchPattern.REGEX_ESCAPE:
+                    regex += b'\\' + byte
                 else:
                     regex += byte
         self.regex = re.compile(regex, re.RegexFlag.DOTALL)
