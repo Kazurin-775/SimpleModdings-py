@@ -27,6 +27,17 @@ class BytesPatch(Patch):
         if len(result) != self.occurrences:
             executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
 
+    def run_on(self, data: bytearray, executor) -> bytearray:
+        executor.message.emit('应用补丁：' + self.comments)
+        result = self.original.matches(data)
+        executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
+                              '，'.join(map(hex, result)))
+        if len(result) == self.occurrences:
+            self.replaced.write_at(data, result)
+        else:
+            executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
+        return data
+
 
 def create_patch(meta: dict) -> Patch:
     if meta['kind'] == 'bytes':
@@ -46,6 +57,21 @@ class PatchedFile:
             data = bytearray(file.read())
         for patch in self.patches:
             patch.dry_run(data, executor)
+
+    def run_on(self, inpath: str, executor) -> None:
+        executor.message.emit('处理文件：' + self.name)
+        with open(inpath, 'rb') as file:
+            data = bytearray(file.read())
+        # make backup
+        if os.access(inpath + '.bak', os.F_OK):
+            executor.message.emit('警告：文件 ' + self.name + '.bak 已存在，将不创建备份')
+        else:
+            executor.message.emit('创建备份文件 ' + self.name + '.bak')
+            os.rename(inpath, inpath + '.bak')
+        for patch in self.patches:
+            data = patch.run_on(data, executor)
+        with open(inpath, 'wb') as file:
+            file.write(data)
 
 
 class PatchExecutor(QRunnable, QObject):
@@ -74,9 +100,16 @@ class PatchExecutor(QRunnable, QObject):
         self.patches = patches
 
     def dry_run(self, prog_path: str) -> None:
-        self.message.emit('开始执行补丁')
+        self.message.emit('开始执行补丁【测试模式】')
         for patch in self.patches:
             patch.dry_run(os.path.join(prog_path, patch.name), self)
+        self.message.emit('补丁执行完成')
+        self.finished.emit()
+
+    def run_on(self, prog_path: str) -> None:
+        self.message.emit('开始执行补丁')
+        for patch in self.patches:
+            patch.run_on(os.path.join(prog_path, patch.name), self)
         self.message.emit('补丁执行完成')
         self.finished.emit()
 
