@@ -36,4 +36,5 @@ class MainWindow(QtWidgets.QMainWindow):
     @Slot()
     def execute_patch(self) -> None:
         self.ui.btnExecute.setEnabled(False)
+        self.pe.test_mode = self.ui.chkTestMode.isChecked()
         QThreadPool.globalInstance().start(self.pe)

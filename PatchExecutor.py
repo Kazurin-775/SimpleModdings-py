@@ -93,6 +93,8 @@ class PatchExecutor(QRunnable, QObject):
         self.message.connect(self.parent.on_message)
         self.message.emit('已载入补丁：' + self.name)
 
+        self.test_mode = False
+
     def compile_patches(self) -> None:
         patches: List[PatchedFile] = []
         for name, meta in self.patch['patches'].items():
@@ -114,4 +116,7 @@ class PatchExecutor(QRunnable, QObject):
         self.finished.emit()
 
     def run(self) -> None:
-        self.dry_run(self.prog_path)
+        if self.test_mode:
+            self.dry_run(self.prog_path)
+        else:
+            self.run_on(self.prog_path)
