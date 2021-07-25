@@ -15,6 +15,7 @@ class BytesPatch(Patch):
         super().__init__()
         self.original = BinarySearchPattern(meta['original'])
         self.replaced = BinaryReplacePattern(meta['replaced'])
+        assert(self.original.len == self.replaced.len)
         self.occurrences = meta['occurrences'] if 'occurrences' in meta else 1
         self.comments = meta['comments']
 

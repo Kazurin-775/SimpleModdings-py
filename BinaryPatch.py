@@ -8,6 +8,7 @@ class BinarySearchPattern:
     def __init__(self, repr: str) -> None:
         repr = repr.replace(' ', '')
         assert(len(repr) % 2 == 0)
+        self.len = len(repr) // 2
         regex = b''
         for i in range(0, len(repr), 2):
             byte = repr[i:i + 2]
@@ -43,6 +44,7 @@ class BinaryReplacePattern:
     def __init__(self, repr: str) -> None:
         repr = repr.replace(' ', '')
         assert(len(repr) % 2 == 0)
+        self.len = len(repr) // 2
         self.pat_bytes = []
         for i in range(0, len(repr), 2):
             self.pat_bytes.append(
