@@ -23,7 +23,7 @@ class BytesPatch(Patch):
         self.comments = meta['comments']
 
     def dry_run(self, data: bytearray, executor) -> None:
-        executor.message.emit('应用补丁：' + self.comments)
+        executor.message.emit('  应用补丁：' + self.comments)
         result = self.original.matches(data)
         executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
                               '，'.join(map(hex, result)))
@@ -31,7 +31,7 @@ class BytesPatch(Patch):
             executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
 
     def run_on(self, data: bytearray, executor) -> bytearray:
-        executor.message.emit('应用补丁：' + self.comments)
+        executor.message.emit('  应用补丁：' + self.comments)
         result = self.original.matches(data)
         executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
                               '，'.join(map(hex, result)))
