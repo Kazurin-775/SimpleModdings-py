@@ -9,6 +9,9 @@ class Patch:
     def dry_run(self, data: bytearray) -> None:
         pass
 
+    def run_on(self, data: bytearray) -> bytearray:
+        return data
+
 
 class BytesPatch(Patch):
     def __init__(self, meta):
@@ -39,24 +42,41 @@ class BytesPatch(Patch):
         return data
 
 
-def create_patch(meta: dict) -> Patch:
+class Patchset(Patch):
+    def __init__(self, patches_meta: List[dict], patchsets: dict[str, Patch]) -> None:
+        self.patches = list(
+            map(lambda x: create_patch(x, patchsets), patches_meta)
+        )
+
+    def dry_run(self, data: bytearray, executor) -> None:
+        for patch in self.patches:
+            patch.dry_run(data, executor)
+
+    def run_on(self, data: bytearray, executor) -> bytearray:
+        for patch in self.patches:
+            data = patch.run_on(data, executor)
+        return data
+
+
+def create_patch(meta: dict, patchsets: dict[str, Patchset]) -> Patch:
     if meta['kind'] == 'bytes':
         return BytesPatch(meta)
+    elif meta['kind'] == 'patchset':
+        return patchsets[meta['name']]
     else:
         raise ValueError('unknown patch kind: ' + meta['kind'])
 
 
 class PatchedFile:
-    def __init__(self, name: str, patches_meta: dict) -> None:
+    def __init__(self, name: str, patches_meta: List[dict], patchsets: dict[str, Patchset]) -> None:
         self.name = name
-        self.patches = list(map(create_patch, patches_meta))
+        self.patchset = Patchset(patches_meta, patchsets)
 
     def dry_run(self, inpath: str, executor) -> None:
         executor.message.emit('处理文件：' + self.name)
         with open(inpath, 'rb') as file:
             data = bytearray(file.read())
-        for patch in self.patches:
-            patch.dry_run(data, executor)
+        self.patchset.dry_run(data, executor)
 
     def run_on(self, inpath: str, executor) -> None:
         executor.message.emit('处理文件：' + self.name)
@@ -68,8 +88,7 @@ class PatchedFile:
         else:
             executor.message.emit('创建备份文件 ' + self.name + '.bak')
             os.rename(inpath, inpath + '.bak')
-        for patch in self.patches:
-            data = patch.run_on(data, executor)
+        data = self.patchset.run_on(data, executor)
         with open(inpath, 'wb') as file:
             file.write(data)
 
@@ -96,9 +115,15 @@ class PatchExecutor(QRunnable, QObject):
         self.test_mode = False
 
     def compile_patches(self) -> None:
+        patchsets: dict[str, Patchset] = {}
+        # compile patchsets
+        if 'patchsets' in self.patch:
+            for name, meta in self.patch['patchsets'].items():
+                patchsets[name] = Patchset(meta, patchsets)
+        # compile patches
         patches: List[PatchedFile] = []
         for name, meta in self.patch['patches'].items():
-            patches.append(PatchedFile(name, meta))
+            patches.append(PatchedFile(name, meta, patchsets))
         self.patches = patches
 
     def dry_run(self, prog_path: str) -> None:
