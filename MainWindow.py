@@ -37,4 +37,5 @@ class MainWindow(QtWidgets.QMainWindow):
     def execute_patch(self) -> None:
         self.ui.btnExecute.setEnabled(False)
         self.pe.test_mode = self.ui.chkTestMode.isChecked()
+        self.pe.prog_path = self.ui.txtProgramPath.text()
         QThreadPool.globalInstance().start(self.pe)
