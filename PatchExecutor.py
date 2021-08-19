@@ -93,13 +93,12 @@ class PatchedFile:
             file.write(data)
 
 
-class PatchExecutor(QRunnable, QObject):
+class PatchExecutor(QObject):
     message = Signal(str)
     finished = Signal()
 
     def __init__(self, parent: QObject, path: str) -> None:
-        QRunnable.__init__(self)
-        QObject.__init__(self, parent)
+        super().__init__(parent)
         self.parent = parent
 
         with open(path, 'r', encoding='UTF-8') as file:
@@ -145,3 +144,12 @@ class PatchExecutor(QRunnable, QObject):
             self.dry_run(self.prog_path)
         else:
             self.run_on(self.prog_path)
+
+
+class PatchTask(QRunnable):
+    def __init__(self, parent: QObject, inner: PatchExecutor) -> None:
+        super().__init__(parent)
+        self.inner = inner
+
+    def run(self) -> None:
+        self.inner.run()

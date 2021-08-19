@@ -2,7 +2,7 @@ from PySide6.QtCore import QThreadPool, Slot
 from PySide6 import QtGui, QtWidgets
 from Ui_MainWindow import Ui_MainWindow
 from ChoosePatchDialog import ChoosePatchDialog
-from PatchExecutor import PatchExecutor
+from PatchExecutor import PatchExecutor, PatchTask
 
 # pyside6-uic mainwindow.ui -o Ui_MainWindow.py
 
@@ -38,4 +38,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.btnExecute.setEnabled(False)
         self.pe.test_mode = self.ui.chkTestMode.isChecked()
         self.pe.prog_path = self.ui.txtProgramPath.text()
-        QThreadPool.globalInstance().start(self.pe)
+        # `start()`` always creates a new `QThread`, and when the thread exits,
+        # the `QRunnable` gets deleted.
+        # `PatchTask` prevents this from causing a double free.
+        QThreadPool.globalInstance().start(PatchTask(self, self.pe))
