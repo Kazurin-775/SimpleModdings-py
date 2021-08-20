@@ -25,13 +25,16 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = ChoosePatchDialog(self)
         if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             patch_file = dlg.patch_file()
-            self.ui.btnChoosePatch.setText(patch_file)
-            self.pe = PatchExecutor(self, 'patches/' + patch_file)
-            self.ui.txtProgramPath.setText(self.pe.default_path)
-            self.pe.prog_path = self.pe.default_path
-            self.pe.finished.connect(
-                lambda: self.ui.btnExecute.setEnabled(True)
-            )
+            self.load_patch(patch_file)
+
+    def load_patch(self, patch_file: str) -> None:
+        self.ui.btnChoosePatch.setText(patch_file)
+        self.pe = PatchExecutor(self, 'patches/' + patch_file)
+        self.ui.txtProgramPath.setText(self.pe.default_path)
+        self.pe.prog_path = self.pe.default_path
+        self.pe.finished.connect(
+            lambda: self.ui.btnExecute.setEnabled(True)
+        )
 
     @Slot()
     def execute_patch(self) -> None:
