@@ -24,6 +24,7 @@ class BytesPatch(Patch):
 
     def dry_run(self, data: bytearray, executor) -> None:
         executor.message.emit('  应用补丁：' + self.comments)
+        # behavior: non-overlapping
         result = self.original.matches(data)
         executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
                               '，'.join(map(hex, result)))
@@ -37,6 +38,44 @@ class BytesPatch(Patch):
                               '，'.join(map(hex, result)))
         if len(result) == self.occurrences:
             self.replaced.write_at(data, result)
+        else:
+            executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
+        return data
+
+
+class StringPatch(Patch):
+    def __init__(self, meta):
+        super().__init__()
+        self.original = meta['original'].encode('UTF-8')
+        self.replaced = meta['replaced'].encode('UTF-8')
+        self.occurrences = meta['occurrences'] if 'occurrences' in meta else 1
+        self.comments = meta['comments']
+
+    def matches(self, data: bytearray) -> List[int]:
+        # behavior: non-overlapping
+        result = [data.find(self.original)]
+        while result[-1] >= 0:
+            found = data.find(self.original, result[-1] + len(self.original))
+            result.append(found)
+        assert(result[-1] == -1)
+        result.pop()
+        return result
+
+    def dry_run(self, data: bytearray, executor) -> None:
+        executor.message.emit('  应用补丁：' + self.comments)
+        result = self.matches(data)
+        executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
+                              '，'.join(map(hex, result)))
+        if len(result) != self.occurrences:
+            executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
+
+    def run_on(self, data: bytearray, executor) -> bytearray:
+        executor.message.emit('  应用补丁：' + self.comments)
+        result = self.matches(data)
+        executor.message.emit('    找到 ' + str(len(result)) + ' 处匹配：' +
+                              '，'.join(map(hex, result)))
+        if len(result) == self.occurrences:
+            data = data.replace(self.original, self.replaced)
         else:
             executor.message.emit('    【错误】匹配数量过多或过少，将跳过该补丁')
         return data
@@ -61,6 +100,8 @@ class Patchset(Patch):
 def create_patch(meta: dict, patchsets: dict[str, Patchset]) -> Patch:
     if meta['kind'] == 'bytes':
         return BytesPatch(meta)
+    elif meta['kind'] == 'string':
+        return StringPatch(meta)
     elif meta['kind'] == 'patchset':
         return patchsets[meta['name']]
     else:
